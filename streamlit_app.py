@@ -94,4 +94,5 @@ def process_zip(file):
             extracted_files = []
             with st.spinner("Extracting files..."):
                 for name in zip_ref.namelist():
-                    if name
+                    if name.endswith(".dxf"):
+                        extracted_files.append(name)
