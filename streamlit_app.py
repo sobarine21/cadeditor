@@ -138,7 +138,7 @@ general_prompt = st.text_input("Enter your prompt (e.g., 'How to optimize CAD de
 if st.button("Generate AI Response"):
     try:
         # Use the corrected generate() method here as well
-        response = genai.generate(
+        response = genai.generate()
             model="gemini-2.0-flash-exp",  # Model name adjustment
             prompt=general_prompt,
             max_output_tokens=300,
