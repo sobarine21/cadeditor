@@ -93,3 +93,5 @@ def process_zip(file):
         with zipfile.ZipFile(file, "r") as zip_ref:
             extracted_files = []
             with st.spinner("Extracting files..."):
+                for name in zip_ref.namelist():
+                    if name
