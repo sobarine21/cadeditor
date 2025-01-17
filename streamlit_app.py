@@ -1,7 +1,6 @@
 import streamlit as st
 import ezdxf
 import matplotlib.pyplot as plt
-import os
 import zipfile
 from io import BytesIO
 import google.generativeai as genai
@@ -62,14 +61,15 @@ def analyze_and_display_dxf(doc, msp, file_name):
     )
 
     try:
-        response = genai.generate(
-            model="gemini-2.0-flash-exp",
+        # Correct API call using generate_text()
+        response = genai.generate_text(
+            model="gemini-2",  # You can adjust the model name here
             prompt=analysis_prompt,
             max_output_tokens=500,
         )
 
-        if response and "candidates" in response:
-            st.write(response["candidates"][0]["output"])
+        if response and response.candidates:
+            st.write(response.candidates[0].output)
         else:
             st.warning("No AI suggestions generated. Try again later.")
     except Exception as e:
@@ -95,55 +95,35 @@ def process_zip(file):
                 for name in zip_ref.namelist():
                     if name.endswith(".dxf"):
                         extracted_files.append(name)
-                        zip_ref.extract(name, "temp_zip")
+                        with zip_ref.open(name) as extracted_file:
+                            doc = ezdxf.readfile(BytesIO(extracted_file.read()))
+                            msp = doc.modelspace()
+                            analyze_and_display_dxf(doc, msp, name)
             if not extracted_files:
                 st.warning("No DXF files found in the ZIP archive.")
-                return
-            for dxf_file in extracted_files:
-                st.write(f"Processing {dxf_file}...")
-                file_path = os.path.join("temp_zip", dxf_file)
-                doc = ezdxf.readfile(file_path)
-                msp = doc.modelspace()
-                analyze_and_display_dxf(doc, msp, dxf_file)
     except Exception as e:
-        st.error(f"Error processing ZIP file: {e}")
+        st.error(f"Error extracting ZIP file: {e}")
 
-# Main Logic
+# Main App Logic
 if uploaded_files:
-    for file in uploaded_files:
-        st.write(f"### Analyzing File: {file.name}")
+    for uploaded_file in uploaded_files:
+        file_name = uploaded_file.name
 
-        if file.name.endswith(".zip"):
-            process_zip(BytesIO(file.read()))
-        elif file.name.endswith(".dxf"):
+        if file_name.endswith(".dxf"):
             try:
-                doc = ezdxf.readfile(BytesIO(file.read()))
+                # Process DXF File
+                doc = ezdxf.readfile(BytesIO(uploaded_file.read()))
                 msp = doc.modelspace()
-                analyze_and_display_dxf(doc, msp, file.name)
+                analyze_and_display_dxf(doc, msp, file_name)
             except Exception as e:
-                st.error(f"Error processing DXF file {file.name}: {e}")
-        elif file.name.endswith(".svg"):
-            process_svg(file)
+                st.error(f"Error processing {file_name}: {e}")
+        elif file_name.endswith(".svg"):
+            # Process SVG File
+            process_svg(uploaded_file)
+        elif file_name.endswith(".zip"):
+            # Process ZIP File
+            process_zip(uploaded_file)
         else:
-            st.warning(f"Unsupported file format: {file.name}")
+            st.warning(f"Unsupported file format: {file_name}")
 else:
-    st.info("Upload one or more CAD files to begin.")
-
-# General AI Assistance Section
-st.subheader("General AI Assistance")
-general_prompt = st.text_input("Enter your prompt (e.g., 'How to optimize CAD designs for 3D printing?')")
-
-if st.button("Generate AI Response"):
-    try:
-        response = genai.generate(
-            model="gemini-2.0-flash-exp",
-            prompt=general_prompt,
-            max_output_tokens=300,
-        )
-        if response and "candidates" in response:
-            st.write("### AI Response")
-            st.write(response["candidates"][0]["output"])
-        else:
-            st.warning("No response generated. Try refining your prompt.")
-    except Exception as e:
-        st.error(f"Error with Gemini AI: {e}")
+    st.info("Please upload at least one file to begin.")
