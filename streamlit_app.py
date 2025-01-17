@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import zipfile
 from io import BytesIO
 import google.generativeai as genai
+import xml.etree.ElementTree as ET
+
 
 # Configure Gemini AI with API key
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -85,6 +87,15 @@ def process_svg(file):
         svg_content = file.getvalue().decode("utf-8")
         st.write("### SVG File Content")
         st.code(svg_content, language="xml")
+
+        # Optionally, parse the SVG content and show a preview or metadata
+        try:
+            tree = ET.ElementTree(ET.fromstring(svg_content))
+            root = tree.getroot()
+            st.write(f"Root tag: {root.tag}")
+            st.write(f"SVG Namespaces: {root.attrib}")
+        except ET.ParseError as e:
+            st.error(f"Error parsing SVG content: {e}")
     except Exception as e:
         st.error(f"Error processing SVG file: {e}")
 
@@ -105,9 +116,12 @@ def process_zip(file):
                         # Read the DXF file into memory using BytesIO
                         with zip_ref.open(name) as extracted_file:
                             dxf_data = extracted_file.read()
-                            doc = ezdxf.readfile(BytesIO(dxf_data))  # Pass in-memory data to ezdxf
-                            msp = doc.modelspace()
-                            analyze_and_display_dxf(doc, msp, name)
+                            try:
+                                doc = ezdxf.readfile(BytesIO(dxf_data))  # Pass in-memory data to ezdxf
+                                msp = doc.modelspace()
+                                analyze_and_display_dxf(doc, msp, name)
+                            except Exception as e:
+                                st.error(f"Error reading DXF file from ZIP: {e}")
 
             if not extracted_files:
                 st.warning("No DXF files found in the ZIP archive.")
