@@ -23,57 +23,60 @@ uploaded_files = st.file_uploader(
 # Analyze DXF Files
 def analyze_and_display_dxf(doc, msp, file_name):
     """Analyze and visualize the DXF file."""
-    st.write(f"### Layers in {file_name}")
-    for layer in doc.layers:
-        st.write(f"- {layer.dxf.name}")
-
-    st.write(f"### Entities in {file_name}")
-    entities = [entity.dxftype() for entity in msp]
-    entity_counts = {entity: entities.count(entity) for entity in set(entities)}
-    for entity, count in entity_counts.items():
-        st.write(f"- {entity}: {count}")
-
-    # Visualization
-    st.write(f"### Visualization of {file_name}")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for entity in msp:
-        if entity.dxftype() == "LINE":
-            start = entity.dxf.start
-            end = entity.dxf.end
-            ax.plot([start.x, end.x], [start.y, end.y], color="blue")
-        elif entity.dxftype() == "CIRCLE":
-            center = entity.dxf.center
-            radius = entity.dxf.radius
-            circle = plt.Circle((center.x, center.y), radius, color="red", fill=False)
-            ax.add_patch(circle)
-
-    ax.set_title(f"Visualization - {file_name}")
-    ax.set_aspect("equal")
-    plt.legend(["Lines", "Circles"], loc="upper right")
-    st.pyplot(fig)
-
-    # AI Analysis
-    st.subheader(f"AI-Powered Insights for {file_name}")
-    analysis_prompt = (
-        f"This CAD design contains {len(doc.layers)} layers and the following entities: "
-        f"{', '.join([f'{entity}: {count}' for entity, count in entity_counts.items()])}. "
-        f"Analyze the design and suggest improvements, optimizations, and potential issues to address."
-    )
-
     try:
-        # Correct API call using generate_text()
-        response = genai.generate_text(
-            model="gemini-2",  # You can adjust the model name here
-            prompt=analysis_prompt,
-            max_output_tokens=500,
+        st.write(f"### Layers in {file_name}")
+        for layer in doc.layers:
+            st.write(f"- {layer.dxf.name}")
+
+        st.write(f"### Entities in {file_name}")
+        entities = [entity.dxftype() for entity in msp]
+        entity_counts = {entity: entities.count(entity) for entity in set(entities)}
+        for entity, count in entity_counts.items():
+            st.write(f"- {entity}: {count}")
+
+        # Visualization
+        st.write(f"### Visualization of {file_name}")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for entity in msp:
+            if entity.dxftype() == "LINE":
+                start = entity.dxf.start
+                end = entity.dxf.end
+                ax.plot([start.x, end.x], [start.y, end.y], color="blue")
+            elif entity.dxftype() == "CIRCLE":
+                center = entity.dxf.center
+                radius = entity.dxf.radius
+                circle = plt.Circle((center.x, center.y), radius, color="red", fill=False)
+                ax.add_patch(circle)
+
+        ax.set_title(f"Visualization - {file_name}")
+        ax.set_aspect("equal")
+        plt.legend(["Lines", "Circles"], loc="upper right")
+        st.pyplot(fig)
+
+        # AI Analysis
+        st.subheader(f"AI-Powered Insights for {file_name}")
+        analysis_prompt = (
+            f"This CAD design contains {len(doc.layers)} layers and the following entities: "
+            f"{', '.join([f'{entity}: {count}' for entity, count in entity_counts.items()])}. "
+            f"Analyze the design and suggest improvements, optimizations, and potential issues to address."
         )
 
-        if response and response.candidates:
-            st.write(response.candidates[0].output)
-        else:
-            st.warning("No AI suggestions generated. Try again later.")
+        try:
+            # Correct API call using generate_text()
+            response = genai.generate_text(
+                model="gemini-2",  # You can adjust the model name here
+                prompt=analysis_prompt,
+                max_output_tokens=500,
+            )
+
+            if response and response.candidates:
+                st.write(response.candidates[0].output)
+            else:
+                st.warning("No AI suggestions generated. Try again later.")
+        except Exception as e:
+            st.error(f"Error during AI analysis: {e}")
     except Exception as e:
-        st.error(f"Error during AI analysis: {e}")
+        st.error(f"Error processing DXF file {file_name}: {e}")
 
 # Process SVG Files
 def process_svg(file):
@@ -99,8 +102,10 @@ def process_zip(file):
                 for name in file_names:
                     if name.endswith(".dxf"):
                         extracted_files.append(name)
+                        # Read the DXF file into memory using BytesIO
                         with zip_ref.open(name) as extracted_file:
-                            doc = ezdxf.readfile(BytesIO(extracted_file.read()))
+                            dxf_data = extracted_file.read()
+                            doc = ezdxf.readfile(BytesIO(dxf_data))  # Pass in-memory data to ezdxf
                             msp = doc.modelspace()
                             analyze_and_display_dxf(doc, msp, name)
 
