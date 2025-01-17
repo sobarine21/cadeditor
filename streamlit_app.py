@@ -62,11 +62,13 @@ def analyze_and_display_dxf(doc, msp, file_name):
     )
 
     try:
-        response = genai.generate_text(
-            model="gemini-1.5-flash",
+        # Correct API call using generate() instead of generate_text
+        response = genai.generate(
+            model="gemini-2.0-flash-exp",  # You can adjust the model name here
             prompt=analysis_prompt,
             max_output_tokens=500,
         )
+
         if response and "candidates" in response:
             st.write(response["candidates"][0]["output"])
         else:
@@ -135,11 +137,13 @@ general_prompt = st.text_input("Enter your prompt (e.g., 'How to optimize CAD de
 
 if st.button("Generate AI Response"):
     try:
-        response = genai.generate_text(
-            model="gemini-1.5-flash",
+        # Use the corrected generate() method here as well
+        response = genai.generate(
+            model="gemini-2.0-flash-exp",  # Model name adjustment
             prompt=general_prompt,
             max_output_tokens=300,
         )
+
         if response and "candidates" in response:
             st.write("### AI Response")
             st.write(response["candidates"][0]["output"])
