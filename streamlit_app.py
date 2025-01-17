@@ -92,15 +92,24 @@ def process_zip(file):
         with zipfile.ZipFile(file, "r") as zip_ref:
             extracted_files = []
             with st.spinner("Extracting files..."):
-                for name in zip_ref.namelist():
+                # Debugging: List all files in ZIP
+                file_names = zip_ref.namelist()
+                st.write("Files in ZIP:", file_names)
+                
+                for name in file_names:
                     if name.endswith(".dxf"):
                         extracted_files.append(name)
                         with zip_ref.open(name) as extracted_file:
                             doc = ezdxf.readfile(BytesIO(extracted_file.read()))
                             msp = doc.modelspace()
                             analyze_and_display_dxf(doc, msp, name)
+
             if not extracted_files:
                 st.warning("No DXF files found in the ZIP archive.")
+    except zipfile.BadZipFile:
+        st.error(f"Error: The ZIP file is not a valid ZIP archive.")
+    except FileNotFoundError:
+        st.error(f"Error: A file within the ZIP archive could not be found.")
     except Exception as e:
         st.error(f"Error extracting ZIP file: {e}")
 
