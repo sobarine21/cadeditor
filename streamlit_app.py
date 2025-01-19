@@ -3,7 +3,6 @@ import google.generativeai as genai
 import tempfile
 from stl import mesh
 import numpy as np
-from math import pi
 
 # Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -15,11 +14,27 @@ st.write("Use AI to analyze CAD designs and generate responses based on your pro
 # File upload for CAD files (STL, STEP, DWG, etc.)
 uploaded_file = st.file_uploader("Upload your CAD file", type=["stl", "step", "dwg"])
 
-def calculate_mesh_properties(cad_mesh):
-    """Calculate and return basic mesh properties: volume and surface area"""
-    volume = cad_mesh.get_mass_properties()[0]  # Volume of the mesh
-    surface_area = cad_mesh.get_area()  # Surface area of the mesh
-    return volume, surface_area
+def calculate_surface_area(cad_mesh):
+    """Calculate surface area by summing areas of each triangular face."""
+    surface_area = 0.0
+    for face in cad_mesh.vectors:
+        # Calculate the area of the triangle using cross product
+        v1 = face[1] - face[0]
+        v2 = face[2] - face[0]
+        cross_product = np.cross(v1, v2)
+        area = np.linalg.norm(cross_product) / 2.0
+        surface_area += area
+    return surface_area
+
+def calculate_volume(cad_mesh):
+    """Calculate volume using the divergence theorem (also called the 'signed volume')."""
+    volume = 0.0
+    for face in cad_mesh.vectors:
+        v0 = face[0]
+        v1 = face[1]
+        v2 = face[2]
+        volume += np.dot(v0, np.cross(v1, v2)) / 6.0
+    return abs(volume)
 
 def analyze_mesh_quality(cad_mesh):
     """Analyze the mesh quality and return a basic assessment."""
@@ -44,9 +59,10 @@ if uploaded_file is not None:
             cad_data = f"STL file loaded with {len(cad_mesh.vectors)} triangular faces."
 
             # Additional analysis (e.g., mesh properties)
-            volume, surface_area = calculate_mesh_properties(cad_mesh)
+            surface_area = calculate_surface_area(cad_mesh)
+            volume = calculate_volume(cad_mesh)
             num_faces, num_degenerate_faces = analyze_mesh_quality(cad_mesh)
-            additional_analysis = f"Volume: {volume:.2f} cubic units\nSurface Area: {surface_area:.2f} square units\nFaces: {num_faces} faces\nDegenerate Faces: {num_degenerate_faces}"
+            additional_analysis = f"Surface Area: {surface_area:.2f} square units\nVolume: {volume:.2f} cubic units\nFaces: {num_faces} faces\nDegenerate Faces: {num_degenerate_faces}"
 
         except Exception as e:
             cad_data = f"Error parsing STL file: {e}"
