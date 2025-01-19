@@ -87,7 +87,6 @@ def process_svg(file):
         st.write("### SVG File Content")
         st.code(svg_content, language="xml")
 
-        # Optionally, parse the SVG content and show a preview or metadata
         try:
             tree = ET.ElementTree(ET.fromstring(svg_content))
             root = tree.getroot()
@@ -105,19 +104,16 @@ def process_zip(file):
         with zipfile.ZipFile(file, "r") as zip_ref:
             extracted_files = []
             with st.spinner("Extracting files..."):
-                # Debugging: List all files in ZIP
                 file_names = zip_ref.namelist()
                 st.write("Files in ZIP:", file_names)
                 
                 for name in file_names:
                     if name.endswith(".dxf"):
                         extracted_files.append(name)
-                        # Read the DXF file into memory using BytesIO
                         with zip_ref.open(name) as extracted_file:
-                            dxf_data = extracted_file.read()  # Ensure this is in bytes
+                            dxf_data = extracted_file.read()
                             try:
-                                # Use ezdxf.read() instead of ezdxf.readfile() for in-memory data
-                                doc = ezdxf.read(BytesIO(dxf_data))  # Ensure BytesIO handles byte data correctly
+                                doc = ezdxf.read(BytesIO(dxf_data))
                                 msp = doc.modelspace()
                                 analyze_and_display_dxf(doc, msp, name)
                             except Exception as e:
@@ -139,18 +135,15 @@ if uploaded_files:
 
         if file_name.endswith(".dxf"):
             try:
-                # Use BytesIO to process the uploaded DXF file correctly
-                dxf_data = uploaded_file.read()  # Read the uploaded DXF file
-                doc = ezdxf.read(BytesIO(dxf_data))  # Use BytesIO to wrap the file data
+                dxf_data = uploaded_file.read()
+                doc = ezdxf.read(BytesIO(dxf_data))
                 msp = doc.modelspace()
                 analyze_and_display_dxf(doc, msp, file_name)
             except Exception as e:
                 st.error(f"Error processing {file_name}: {e}")
         elif file_name.endswith(".svg"):
-            # Process SVG File
             process_svg(uploaded_file)
         elif file_name.endswith(".zip"):
-            # Process ZIP File
             process_zip(uploaded_file)
         else:
             st.warning(f"Unsupported file format: {file_name}")
