@@ -3,6 +3,7 @@ import google.generativeai as genai
 import tempfile
 from stl import mesh
 import numpy as np
+from math import pi
 
 # Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -42,6 +43,33 @@ def analyze_mesh_quality(cad_mesh):
     num_degenerate_faces = sum(np.isnan(face).any() for face in cad_mesh.vectors)
     return num_faces, num_degenerate_faces
 
+def apply_simplification(cad_mesh):
+    """Simplify the mesh by removing small, unnecessary faces or simplifying geometry."""
+    simplified_faces = []
+    for face in cad_mesh.vectors:
+        # Example: Remove very small faces to reduce complexity (threshold: area < 0.001)
+        v1 = face[1] - face[0]
+        v2 = face[2] - face[0]
+        cross_product = np.cross(v1, v2)
+        area = np.linalg.norm(cross_product) / 2.0
+        if area > 0.001:  # Only keep faces with significant area
+            simplified_faces.append(face)
+    # Create a new mesh with the simplified faces
+    simplified_mesh = mesh.Mesh(np.array(simplified_faces))
+    return simplified_mesh
+
+def apply_thickening(cad_mesh, thickness_factor=1.2):
+    """Thicken the geometry by expanding the vertices."""
+    thickened_faces = []
+    for face in cad_mesh.vectors:
+        centroid = np.mean(face, axis=0)
+        # Move the vertices away from the centroid
+        thickened_face = [centroid + (vertex - centroid) * thickness_factor for vertex in face]
+        thickened_faces.append(np.array(thickened_face))
+    # Create a new mesh with the thickened faces
+    thickened_mesh = mesh.Mesh(np.array(thickened_faces))
+    return thickened_mesh
+
 if uploaded_file is not None:
     # Temporarily save the uploaded file
     temp_file = tempfile.NamedTemporaryFile(delete=False)
@@ -51,6 +79,7 @@ if uploaded_file is not None:
     # Parse the CAD file based on the extension
     cad_data = ""
     additional_analysis = ""
+    modified_mesh = None
 
     if uploaded_file.name.endswith('.stl'):
         # Load and parse STL file
@@ -63,6 +92,22 @@ if uploaded_file is not None:
             volume = calculate_volume(cad_mesh)
             num_faces, num_degenerate_faces = analyze_mesh_quality(cad_mesh)
             additional_analysis = f"Surface Area: {surface_area:.2f} square units\nVolume: {volume:.2f} cubic units\nFaces: {num_faces} faces\nDegenerate Faces: {num_degenerate_faces}"
+
+            # Suggest improvements
+            improvement_suggestions = "We suggest simplifying the mesh and thickening thin areas to improve structural integrity."
+
+            # Apply improvements if selected
+            st.write(improvement_suggestions)
+            apply_simplification_checkbox = st.checkbox("Simplify the Mesh")
+            apply_thickening_checkbox = st.checkbox("Thicken Thin Areas")
+
+            if apply_simplification_checkbox:
+                modified_mesh = apply_simplification(cad_mesh)
+                st.write("Mesh simplification applied.")
+            
+            if apply_thickening_checkbox:
+                modified_mesh = apply_thickening(cad_mesh)
+                st.write("Geometry thickening applied.")
 
         except Exception as e:
             cad_data = f"Error parsing STL file: {e}"
@@ -83,6 +128,12 @@ if uploaded_file is not None:
     if additional_analysis:
         st.write("Advanced Analysis:")
         st.write(additional_analysis)
+
+    # Provide download option for the revised file
+    if modified_mesh is not None:
+        output_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".stl").name
+        modified_mesh.save(output_file_path)
+        st.write(f"Revised mesh has been created. You can download the modified STL file [here](file://{output_file_path}).")
 
     # Prompt input field for specific analysis or queries
     prompt = st.text_input("Enter your prompt (e.g., Analysis, Design Suggestions, etc.):", "")
