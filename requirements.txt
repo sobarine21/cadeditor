@@ -1,5 +1,6 @@
 streamlit 
-ezdxf
-matplotlib 
 google-generativeai
+numpy-stl
+pythonocc-core 
+ezdxf
  
