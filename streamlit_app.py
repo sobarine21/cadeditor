@@ -1,151 +1,71 @@
 import streamlit as st
-import ezdxf
-import matplotlib.pyplot as plt
-import zipfile
-from io import BytesIO
 import google.generativeai as genai
-import xml.etree.ElementTree as ET
+import os
+from io import BytesIO
+import tempfile
+from stl import mesh  # For .stl file parsing
+import numpy as np  # For handling file data and analysis
 
-# Configure Gemini AI with API key
+# Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
-# App Title
-st.title("AI-Powered CAD Design Analyzer")
-st.subheader("Upload, analyze, and receive AI-driven insights to improve your CAD designs.")
+# Streamlit App UI
+st.title("Ever AI - CAD Design Analyzer")
+st.write("Use AI to analyze CAD designs and generate responses based on your prompt.")
 
-# File Upload Section
-st.subheader("Upload CAD Files")
-uploaded_files = st.file_uploader(
-    "Upload CAD design(s) (.dxf, .svg formats or .zip with DXF files)",
-    type=["dxf", "svg", "zip"],
-    accept_multiple_files=True,
-)
+# File upload for CAD files (STL, STEP, DWG, etc.)
+uploaded_file = st.file_uploader("Upload your CAD file", type=["stl", "step", "dwg"])
 
-# Analyze DXF Files
-def analyze_and_display_dxf(doc, msp, file_name):
-    """Analyze and visualize the DXF file."""
-    try:
-        st.write(f"### Layers in {file_name}")
-        for layer in doc.layers:
-            st.write(f"- {layer.dxf.name}")
-
-        st.write(f"### Entities in {file_name}")
-        entities = [entity.dxftype() for entity in msp]
-        entity_counts = {entity: entities.count(entity) for entity in set(entities)}
-        for entity, count in entity_counts.items():
-            st.write(f"- {entity}: {count}")
-
-        # Visualization
-        st.write(f"### Visualization of {file_name}")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        for entity in msp:
-            if entity.dxftype() == "LINE":
-                start = entity.dxf.start
-                end = entity.dxf.end
-                ax.plot([start.x, end.x], [start.y, end.y], color="blue")
-            elif entity.dxftype() == "CIRCLE":
-                center = entity.dxf.center
-                radius = entity.dxf.radius
-                circle = plt.Circle((center.x, center.y), radius, color="red", fill=False)
-                ax.add_patch(circle)
-
-        ax.set_title(f"Visualization - {file_name}")
-        ax.set_aspect("equal")
-        plt.legend(["Lines", "Circles"], loc="upper right")
-        st.pyplot(fig)
-
-        # AI Analysis
-        st.subheader(f"AI-Powered Insights for {file_name}")
-        analysis_prompt = (
-            f"This CAD design contains {len(doc.layers)} layers and the following entities: "
-            f"{', '.join([f'{entity}: {count}' for entity, count in entity_counts.items()])}. "
-            f"Analyze the design and suggest improvements, optimizations, and potential issues to address."
-        )
-
+if uploaded_file is not None:
+    # Temporarily save the uploaded file
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file.write(uploaded_file.getvalue())
+    temp_file_path = temp_file.name
+    
+    # Parse the CAD file based on the extension
+    cad_data = ""
+    
+    if uploaded_file.name.endswith('.stl'):
+        # Load and parse STL file
         try:
-            # Correct API call using generate_text()
-            response = genai.generate_text(
-                model="gemini-2.0-flash-exp",  # You can adjust the model name here
-                prompt=analysis_prompt,
-                max_output_tokens=500,
-            )
-
-            if response and response.candidates:
-                st.write(response.candidates[0].output)
-            else:
-                st.warning("No AI suggestions generated. Try again later.")
+            cad_mesh = mesh.Mesh.from_file(temp_file_path)
+            cad_data = f"STL file loaded with {len(cad_mesh.vectors)} triangular faces."
         except Exception as e:
-            st.error(f"Error during AI analysis: {e}")
-    except Exception as e:
-        st.error(f"Error processing DXF file {file_name}: {e}")
+            cad_data = f"Error parsing STL file: {e}"
 
-# Process SVG Files
-def process_svg(file):
-    """Process and display SVG files."""
-    try:
-        svg_content = file.getvalue().decode("utf-8")
-        st.write("### SVG File Content")
-        st.code(svg_content, language="xml")
+    elif uploaded_file.name.endswith('.step'):
+        cad_data = "STEP file parsing is not implemented yet. You can implement a STEP parser based on libraries such as `pythonOCC`."
+    
+    elif uploaded_file.name.endswith('.dwg'):
+        cad_data = "DWG file parsing is not implemented yet. You can implement DWG parsing using libraries such as `ezdxf`."
+    
+    else:
+        cad_data = "Unsupported CAD file format."
 
-        try:
-            tree = ET.ElementTree(ET.fromstring(svg_content))
-            root = tree.getroot()
-            st.write(f"Root tag: {root.tag}")
-            st.write(f"SVG Namespaces: {root.attrib}")
-        except ET.ParseError as e:
-            st.error(f"Error parsing SVG content: {e}")
-    except Exception as e:
-        st.error(f"Error processing SVG file: {e}")
+    # Show basic CAD data to the user
+    st.write(f"File Details: {uploaded_file.name}")
+    st.write(f"CAD Analysis: {cad_data}")
 
-# Process ZIP Archives
-def process_zip(file):
-    """Extract and process DXF files from a ZIP archive."""
-    try:
-        with zipfile.ZipFile(file, "r") as zip_ref:
-            extracted_files = []
-            with st.spinner("Extracting files..."):
-                file_names = zip_ref.namelist()
-                st.write("Files in ZIP:", file_names)
-                
-                for name in file_names:
-                    if name.endswith(".dxf"):
-                        extracted_files.append(name)
-                        with zip_ref.open(name) as extracted_file:
-                            dxf_data = extracted_file.read()
-                            try:
-                                doc = ezdxf.read(BytesIO(dxf_data))
-                                msp = doc.modelspace()
-                                analyze_and_display_dxf(doc, msp, name)
-                            except Exception as e:
-                                st.error(f"Error reading DXF file from ZIP: {e}")
-
-            if not extracted_files:
-                st.warning("No DXF files found in the ZIP archive.")
-    except zipfile.BadZipFile:
-        st.error(f"Error: The ZIP file is not a valid ZIP archive.")
-    except FileNotFoundError:
-        st.error(f"Error: A file within the ZIP archive could not be found.")
-    except Exception as e:
-        st.error(f"Error extracting ZIP file: {e}")
-
-# Main App Logic
-if uploaded_files:
-    for uploaded_file in uploaded_files:
-        file_name = uploaded_file.name
-
-        if file_name.endswith(".dxf"):
+    # Prompt input field for specific analysis or queries
+    prompt = st.text_input("Enter your prompt (e.g., Analysis, Design Suggestions, etc.):", "")
+    
+    # Button to generate AI response based on user prompt
+    if st.button("Generate AI Response"):
+        if prompt:
             try:
-                dxf_data = uploaded_file.read()
-                doc = ezdxf.read(BytesIO(dxf_data))
-                msp = doc.modelspace()
-                analyze_and_display_dxf(doc, msp, file_name)
+                # Load and configure the model (Gemini AI model)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                
+                # Generate AI response based on user prompt and CAD data
+                full_prompt = f"Analyze the following CAD data and answer based on this prompt: '{prompt}'. CAD Data: {cad_data}"
+                response = model.generate_content(full_prompt)
+                
+                # Display AI response
+                st.write("AI Response:")
+                st.write(response.text)
             except Exception as e:
-                st.error(f"Error processing {file_name}: {e}")
-        elif file_name.endswith(".svg"):
-            process_svg(uploaded_file)
-        elif file_name.endswith(".zip"):
-            process_zip(uploaded_file)
+                st.error(f"Error generating response: {e}")
         else:
-            st.warning(f"Unsupported file format: {file_name}")
+            st.error("Please enter a prompt to analyze the CAD design.")
 else:
-    st.info("Please upload at least one file to begin.")
+    st.info("Please upload a CAD file to begin analysis.")
