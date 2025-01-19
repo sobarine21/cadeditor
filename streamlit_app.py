@@ -84,9 +84,11 @@ if uploaded_file is not None:
         # Load and parse STL file
         try:
             cad_mesh = mesh.Mesh.from_file(temp_file_path)
+
+            # Check if the mesh is loaded properly
             if cad_mesh is None or len(cad_mesh.vectors) == 0:
-                raise ValueError("The STL file is empty or invalid.")
-            
+                raise ValueError("Failed to load the STL file. The file might be empty or corrupted.")
+
             cad_data = f"STL file loaded with {len(cad_mesh.vectors)} triangular faces."
 
             # Additional analysis (e.g., mesh properties)
