@@ -1,13 +1,8 @@
 import streamlit as st
 import google.generativeai as genai
-import os
-from io import BytesIO
 import tempfile
-from stl import mesh  # For .stl file parsing
+from stl import mesh  # Correct import from numpy-stl
 import numpy as np  # For handling file data and analysis
-import ezdxf  # For .dwg file parsing
-from OCC.Extend.DataExchange import read_step_file  # For .step file parsing
-from OCC.Core.TopoDS import TopoDS_Shape
 
 # Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -18,22 +13,6 @@ st.write("Use AI to analyze CAD designs and generate responses based on your pro
 
 # File upload for CAD files (STL, STEP, DWG, etc.)
 uploaded_file = st.file_uploader("Upload your CAD file", type=["stl", "step", "dwg"])
-
-def parse_step_file(file_path):
-    try:
-        shape = read_step_file(file_path)
-        # Example processing (you can extract more details as needed)
-        return f"STEP file parsed with {str(shape)} shape data."
-    except Exception as e:
-        return f"Error parsing STEP file: {e}"
-
-def parse_dwg_file(file_path):
-    try:
-        doc = ezdxf.readfile(file_path)
-        entities_count = len(doc.entities)  # Counting number of entities (you can extend this)
-        return f"DWG file contains {entities_count} entities."
-    except Exception as e:
-        return f"Error parsing DWG file: {e}"
 
 if uploaded_file is not None:
     # Temporarily save the uploaded file
@@ -53,10 +32,10 @@ if uploaded_file is not None:
             cad_data = f"Error parsing STL file: {e}"
 
     elif uploaded_file.name.endswith('.step'):
-        cad_data = parse_step_file(temp_file_path)
+        cad_data = "STEP file parsing is not implemented yet. You can implement a STEP parser based on libraries such as `pythonOCC`."
     
     elif uploaded_file.name.endswith('.dwg'):
-        cad_data = parse_dwg_file(temp_file_path)
+        cad_data = "DWG file parsing is not implemented yet. You can implement DWG parsing using libraries such as `ezdxf`."
     
     else:
         cad_data = "Unsupported CAD file format."
