@@ -3,7 +3,7 @@ import google.generativeai as genai
 import tempfile
 from stl import mesh
 import numpy as np
-from math import pi
+import os
 
 # Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -131,6 +131,7 @@ if uploaded_file is not None:
 
     # Provide download option for the revised file
     if modified_mesh is not None:
+        # Ensure temporary file is written properly
         output_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".stl").name
         modified_mesh.save(output_file_path)
         st.write(f"Revised mesh has been created. You can download the modified STL file [here](file://{output_file_path}).")
