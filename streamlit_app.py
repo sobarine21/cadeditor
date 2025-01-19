@@ -139,8 +139,9 @@ if uploaded_files:
 
         if file_name.endswith(".dxf"):
             try:
-                # Process DXF File
-                doc = ezdxf.readfile(BytesIO(uploaded_file.read()))  # Corrected line for reading DXF from uploaded file
+                # Use BytesIO to process the uploaded DXF file correctly
+                dxf_data = uploaded_file.read()  # Read the uploaded DXF file
+                doc = ezdxf.readfile(BytesIO(dxf_data))  # Use BytesIO to wrap the file data
                 msp = doc.modelspace()
                 analyze_and_display_dxf(doc, msp, file_name)
             except Exception as e:
