@@ -1,6 +1,5 @@
- streamlit
- google-generativeai
- numpy-stl
- stl
- ezdxf
-pyocc 
+streamlit
+google-generativeai
+numpy-stl
+ezdxf
+pyocc
