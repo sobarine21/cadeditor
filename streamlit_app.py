@@ -3,7 +3,6 @@ import google.generativeai as genai
 import tempfile
 from stl import mesh
 import numpy as np
-import os
 
 # Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -85,6 +84,9 @@ if uploaded_file is not None:
         # Load and parse STL file
         try:
             cad_mesh = mesh.Mesh.from_file(temp_file_path)
+            if cad_mesh is None or len(cad_mesh.vectors) == 0:
+                raise ValueError("The STL file is empty or invalid.")
+            
             cad_data = f"STL file loaded with {len(cad_mesh.vectors)} triangular faces."
 
             # Additional analysis (e.g., mesh properties)
