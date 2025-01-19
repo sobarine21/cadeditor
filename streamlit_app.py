@@ -117,7 +117,7 @@ def process_zip(file):
                         with zip_ref.open(name) as extracted_file:
                             dxf_data = extracted_file.read()
                             try:
-                                doc = ezdxf.readbytes(dxf_data)  # Updated line for in-memory DXF reading
+                                doc = ezdxf.readfile(BytesIO(dxf_data))  # Corrected line for reading DXF from ZIP
                                 msp = doc.modelspace()
                                 analyze_and_display_dxf(doc, msp, name)
                             except Exception as e:
@@ -140,7 +140,7 @@ if uploaded_files:
         if file_name.endswith(".dxf"):
             try:
                 # Process DXF File
-                doc = ezdxf.readbytes(uploaded_file.read())  # Updated line for in-memory DXF reading
+                doc = ezdxf.readfile(BytesIO(uploaded_file.read()))  # Corrected line for reading DXF from uploaded file
                 msp = doc.modelspace()
                 analyze_and_display_dxf(doc, msp, file_name)
             except Exception as e:
