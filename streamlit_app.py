@@ -114,7 +114,7 @@ def process_zip(file):
                         extracted_files.append(name)
                         # Read the DXF file into memory using BytesIO
                         with zip_ref.open(name) as extracted_file:
-                            dxf_data = extracted_file.read()
+                            dxf_data = extracted_file.read()  # Read as bytes
                             try:
                                 # Use ezdxf.read() instead of ezdxf.readfile() for in-memory data
                                 doc = ezdxf.read(BytesIO(dxf_data))  # Corrected line for reading DXF from ZIP
