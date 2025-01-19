@@ -65,7 +65,7 @@ def analyze_and_display_dxf(doc, msp, file_name):
         try:
             # Correct API call using generate_text()
             response = genai.generate_text(
-                model="gemini-2",  # You can adjust the model name here
+                model="gemini-2.0-flash-exp",  # You can adjust the model name here
                 prompt=analysis_prompt,
                 max_output_tokens=500,
             )
