@@ -6,7 +6,6 @@ from io import BytesIO
 import google.generativeai as genai
 import xml.etree.ElementTree as ET
 
-
 # Configure Gemini AI with API key
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
@@ -117,7 +116,8 @@ def process_zip(file):
                         with zip_ref.open(name) as extracted_file:
                             dxf_data = extracted_file.read()
                             try:
-                                doc = ezdxf.readfile(BytesIO(dxf_data))  # Corrected line for reading DXF from ZIP
+                                # Use ezdxf.read() instead of ezdxf.readfile() for in-memory data
+                                doc = ezdxf.read(BytesIO(dxf_data))  # Corrected line for reading DXF from ZIP
                                 msp = doc.modelspace()
                                 analyze_and_display_dxf(doc, msp, name)
                             except Exception as e:
@@ -141,7 +141,7 @@ if uploaded_files:
             try:
                 # Use BytesIO to process the uploaded DXF file correctly
                 dxf_data = uploaded_file.read()  # Read the uploaded DXF file
-                doc = ezdxf.readfile(BytesIO(dxf_data))  # Use BytesIO to wrap the file data
+                doc = ezdxf.read(BytesIO(dxf_data))  # Use BytesIO to wrap the file data
                 msp = doc.modelspace()
                 analyze_and_display_dxf(doc, msp, file_name)
             except Exception as e:
