@@ -23,9 +23,9 @@ def create_download_link(file_content, file_name, file_type):
     return href
 
 # Function to mimic CAD design generation and save as DXF or STL
-def generate_cad_design(description):
+def generate_cad_design(description, file_format):
     # Placeholder for actual CAD generation logic
-    cad_data = f"CADDATA: {description}"
+    cad_data = f"CADDATA: {description}\nFORMAT: {file_format.upper()}"
     return cad_data
 
 # Prompt input field
@@ -51,7 +51,7 @@ if st.button("Generate CAD Design"):
         st.session_state['history'].append({"prompt": prompt, "response": response.text, "timestamp": str(datetime.now())})
         
         # Generate CAD design
-        cad_design = generate_cad_design(response.text)
+        cad_design = generate_cad_design(response.text, file_format)
         st.session_state['designs'].append({
             "description": response.text,
             "design_data": cad_design,
