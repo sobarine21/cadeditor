@@ -1,9 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
-from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
-import json
-import pydeck as pdk
+import base64
 
 # Configure the API key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -17,6 +15,12 @@ if 'history' not in st.session_state:
     st.session_state['history'] = []
 if 'designs' not in st.session_state:
     st.session_state['designs'] = []
+
+# Function to create a download link for CAD design
+def create_download_link(file_content, file_name):
+    b64 = base64.b64encode(file_content.encode()).decode()
+    href = f'<a href="data:file/cad;base64,{b64}" download="{file_name}">Download CAD Design</a>'
+    return href
 
 # Prompt input field
 prompt = st.text_input("Enter your design description:", "A modern, minimalist chair")
@@ -60,11 +64,13 @@ for entry in st.session_state['history']:
 
 # Display generated CAD designs
 st.write("Generated CAD Designs:")
-for design in st.session_state['designs']:
+for i, design in enumerate(st.session_state['designs']):
     st.write(f"Description: {design['description']}")
     st.write(f"Timestamp: {design['timestamp']}")
-    # Placeholder for displaying CAD design (replace with actual CAD display logic)
     st.write("CAD Design Data:", design['design_data'])
+    # Create a download link for the CAD design
+    download_link = create_download_link(design['design_data'], f"cad_design_{i}.cad")
+    st.markdown(download_link, unsafe_allow_html=True)
     st.write("---")
 
 # Placeholder for additional design and modeling features
@@ -84,6 +90,3 @@ st.write("12. Layer management for design elements")
 st.write("13. Version control for design iterations")
 st.write("14. Notifications for design updates")
 st.write("15. Real-time data synchronization")
-
-# Refresh the app every 60 seconds to update history
-st_autorefresh(interval=60*1000, key="history_refresh")
