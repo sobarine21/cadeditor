@@ -17,13 +17,22 @@ if 'designs' not in st.session_state:
     st.session_state['designs'] = []
 
 # Function to create a download link for CAD design
-def create_download_link(file_content, file_name):
+def create_download_link(file_content, file_name, file_type):
     b64 = base64.b64encode(file_content.encode()).decode()
-    href = f'<a href="data:file/cad;base64,{b64}" download="{file_name}">Download CAD Design</a>'
+    href = f'<a href="data:file/{file_type};base64,{b64}" download="{file_name}">Download {file_type.upper()} Design</a>'
     return href
+
+# Function to mimic CAD design generation and save as DXF or STL
+def generate_cad_design(description):
+    # Placeholder for actual CAD generation logic
+    cad_data = f"CADDATA: {description}"
+    return cad_data
 
 # Prompt input field
 prompt = st.text_input("Enter your design description:", "A modern, minimalist chair")
+
+# File format selection
+file_format = st.selectbox("Select CAD file format:", ["DXF", "STL"])
 
 # Button to generate response and CAD design
 if st.button("Generate CAD Design"):
@@ -41,13 +50,14 @@ if st.button("Generate CAD Design"):
         # Save prompt and response to history
         st.session_state['history'].append({"prompt": prompt, "response": response.text, "timestamp": str(datetime.now())})
         
-        # Placeholder for generating CAD design (replace with actual CAD generation logic)
-        cad_design = {
+        # Generate CAD design
+        cad_design = generate_cad_design(response.text)
+        st.session_state['designs'].append({
             "description": response.text,
-            "design_data": "CAD design data placeholder",
-            "timestamp": str(datetime.now())
-        }
-        st.session_state['designs'].append(cad_design)
+            "design_data": cad_design,
+            "timestamp": str(datetime.now()),
+            "format": file_format.lower()
+        })
         
         st.success("CAD Design Generated Successfully!")
         
@@ -69,7 +79,7 @@ for i, design in enumerate(st.session_state['designs']):
     st.write(f"Timestamp: {design['timestamp']}")
     st.write("CAD Design Data:", design['design_data'])
     # Create a download link for the CAD design
-    download_link = create_download_link(design['design_data'], f"cad_design_{i}.cad")
+    download_link = create_download_link(design['design_data'], f"cad_design_{i}.{design['format']}", design['format'])
     st.markdown(download_link, unsafe_allow_html=True)
     st.write("---")
 
