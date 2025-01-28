@@ -78,9 +78,15 @@ for i, design in enumerate(st.session_state['designs']):
     st.write(f"Description: {design['description']}")
     st.write(f"Timestamp: {design['timestamp']}")
     st.write("CAD Design Data:", design['design_data'])
-    # Create a download link for the CAD design
-    download_link = create_download_link(design['design_data'], f"cad_design_{i}.{design['format']}", design['format'])
-    st.markdown(download_link, unsafe_allow_html=True)
+    
+    # Ensure 'format' is in the design dictionary
+    if 'format' in design:
+        # Create a download link for the CAD design
+        download_link = create_download_link(design['design_data'], f"cad_design_{i}.{design['format']}", design['format'])
+        st.markdown(download_link, unsafe_allow_html=True)
+    else:
+        st.error("Design format is missing.")
+    
     st.write("---")
 
 # Placeholder for additional design and modeling features
