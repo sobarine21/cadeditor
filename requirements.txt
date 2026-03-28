@@ -2,3 +2,4 @@ streamlit
 google-generativeai
 numpy-stl
 streamlit_autorefresh
+plotly
